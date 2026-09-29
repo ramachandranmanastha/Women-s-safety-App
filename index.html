@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SafeRoute — Women's Safety App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --pink:#D23B6E;--pink-d:#B02D58;--pink-l:#FBEAF0;
+  --green:#27AE60;--orange:#E67E22;--blue:#2980B9;--red:#C0392B;
+  --bg:#F0F2F5;--surface:#FFFFFF;--surface2:#F8F9FA;
+  --text:#1A1A2E;--text2:#555;--text3:#999;
+  --border:#E8E8EE;--shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+
+/* ── DEVICE FRAME ── */
+.device{width:375px;height:780px;background:var(--surface);border-radius:44px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.25),0 0 0 8px #1a1a2e,0 0 0 10px #2a2a3e;position:relative;display:flex;flex-direction:column}
+.status-bar{background:var(--pink);color:#fff;font-size:11px;padding:10px 20px 6px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+.screen.active{display:flex}
+.scroll-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.scroll-body::-webkit-scrollbar{width:0}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--pink);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar h2{font-size:17px;font-weight:600;flex:1}
+.topbar .back{cursor:pointer;font-size:22px;line-height:1;padding:2px 4px}
+.topbar .action{cursor:pointer;font-size:20px}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;flex-shrink:0;padding:6px 0 10px}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--text3);font-size:10px;padding:4px 0;font-family:'Inter',sans-serif}
+.nav-btn.active{color:var(--pink)}
+.nav-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── COMPONENTS ── */
+.btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s}
+.btn-pink{background:var(--pink);color:#fff}
+.btn-pink:hover{background:var(--pink-d)}
+.btn-pink:active{transform:scale(0.98)}
+.btn-outline{background:transparent;color:var(--pink);border:1.5px solid var(--pink)}
+.btn-red{background:var(--red);color:#fff}
+.input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;font-family:'Inter',sans-serif;background:var(--surface);color:var(--text);outline:none;transition:.2s}
+.input:focus{border-color:var(--pink)}
+.card{background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-safe{background:#EAF3DE;color:#2D7A0F}
+.badge-mod{background:#FEF3E2;color:#7A4A0F}
+.badge-unsafe{background:#FCEBEB;color:#8B1A1A}
+.badge-pink{background:var(--pink-l);color:var(--pink)}
+.score-bar{height:7px;border-radius:4px;background:var(--border);overflow:hidden;margin:6px 0}
+.score-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.divider{height:1px;background:var(--border);margin:0 -14px}
+.section-label{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;margin-top:4px}
+.toast{position:absolute;bottom:90px;left:16px;right:16px;background:#1a1a2e;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;text-align:center;z-index:999;animation:toast-in .3s ease;display:none}
+@keyframes toast-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SPLASH ── */
+#splash{background:var(--pink);align-items:center;justify-content:center;gap:14px}
+.splash-icon{width:88px;height:88px;border-radius:28px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:44px}
+.splash-title{font-size:28px;font-weight:800;color:#fff}
+.splash-sub{font-size:13px;color:rgba(255,255,255,0.8)}
+.splash-loader{width:40px;height:3px;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden;margin-top:30px}
+.splash-loader::after{content:'';display:block;height:100%;background:#fff;border-radius:2px;animation:load 2s ease forwards}
+@keyframes load{from{width:0}to{width:100%}}
+
+/* ── LOGIN ── */
+#login .login-header{background:var(--pink);padding:40px 20px 30px;text-align:center}
+#login .login-header .icon{font-size:40px;margin-bottom:8px}
+#login .login-header h2{font-size:22px;font-weight:700;color:#fff}
+#login .login-header p{font-size:13px;color:rgba(255,255,255,0.8);margin-top:4px}
+#login .login-body{padding:24px 20px;flex:1}
+.form-group{margin-bottom:14px}
+.form-label{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px;display:block}
+.error-msg{color:var(--red);font-size:12px;margin-top:8px;text-align:center;display:none}
+.link-text{color:var(--pink);font-size:13px;cursor:pointer;font-weight:500}
+.link-text:hover{text-decoration:underline}
+
+/* ── HOME ── */
+.home-header{background:var(--pink);padding:16px 16px 20px}
+.home-header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.home-greeting{color:rgba(255,255,255,0.8);font-size:12px}
+.home-name{color:#fff;font-size:20px;font-weight:700}
+.home-avatar{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0}
+.search-bar{background:rgba(255,255,255,0.18);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.search-bar span{color:rgba(255,255,255,0.75);font-size:14px}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.quick-card{background:var(--surface);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:.2s;border:1.5px solid transparent}
+.quick-card:hover{border-color:var(--pink);transform:translateY(-2px)}
+.quick-card:active{transform:scale(0.97)}
+.quick-icon{font-size:28px;margin-bottom:8px}
+.quick-label{font-size:13px;font-weight:600;color:var(--text)}
+.activity-card{background:var(--surface);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer}
+.activity-card:active{opacity:.8}
+
+/* ── MAP SCREEN ── */
+.map-box{background:linear-gradient(160deg,#c8e6c9 0%,#a5d6a7 40%,#81c784 70%,#66bb6a 100%);height:240px;position:relative;overflow:hidden;flex-shrink:0}
+.map-road{position:absolute;background:rgba(255,255,255,0.55);border-radius:3px}
+.map-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.map-pin-src{position:absolute;top:45%;left:22%;font-size:24px;transform:translate(-50%,-50%)}
+.map-pin-dst{position:absolute;top:30%;right:20%;font-size:24px;transform:translate(50%,-50%)}
+.map-route-line{position:absolute;width:45%;height:3px;background:var(--pink);border-radius:2px;top:38%;left:28%;transform:rotate(-12deg)}
+.map-tag{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.92);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--green)}
+.location-row{background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.loc-item{display:flex;align-items:center;gap:10px}
+.loc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.loc-info{flex:1}
+.loc-label{font-size:11px;color:var(--text3)}
+.loc-val{font-size:13px;font-weight:500;color:var(--text)}
+
+/* ── ROUTES ── */
+.route-card{background:var(--surface);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer;border:2px solid transparent;transition:.2s}
+.route-card:hover{transform:translateY(-2px)}
+.route-card.recommended{border-color:var(--pink)}
+.route-card:active{transform:scale(0.98)}
+.route-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.route-name{font-size:14px;font-weight:700}
+.route-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.route-score{font-size:26px;font-weight:800}
+.route-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.route-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.info-banner{background:#E1F5EE;border-radius:10px;padding:10px 12px;font-size:12px;color:#085041;margin-bottom:10px;line-height:1.5}
+
+/* ── RECOMMENDATION ── */
+.recommend-banner{background:linear-gradient(135deg,#EAF3DE,#D4EDC4);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.factor-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.factor-label{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.factor-right{display:flex;align-items:center;gap:8px}
+.factor-bar{width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.factor-bar-fill{height:100%;border-radius:3px}
+.factor-val{font-size:11px;font-weight:600;min-width:36px;text-align:right}
+
+/* ── NAVIGATION SCREEN ── */
+.nav-map{background:linear-gradient(160deg,#1a1a2e 0%,#16213E 60%,#0F3460 100%);flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.nav-map-road{position:absolute;background:rgba(255,255,255,0.12);border-radius:4px}
+.nav-map-content{text-align:center;z-index:1}
+.nav-compass{font-size:48px;animation:spin 8s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.nav-bottom{background:#1a1a2e;padding:16px}
+.nav-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:14px}
+.nav-stat{text-align:center;padding:8px 0}
+.nav-stat-label{font-size:10px;color:rgba(255,255,255,0.5)}
+.nav-stat-val{font-size:20px;font-weight:700;color:#fff;margin-top:2px}
+.nav-header{background:#1a1a2e;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+/* ── SOS ── */
+.sos-ring{width:130px;height:130px;border-radius:50%;background:rgba(192,57,43,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto;animation:ring-pulse 2s ease-in-out infinite}
+@keyframes ring-pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,0.3)}50%{box-shadow:0 0 0 20px rgba(192,57,43,0)}}
+.sos-circle{width:104px;height:104px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:.15s;user-select:none;box-shadow:0 8px 24px rgba(192,57,43,0.4)}
+.sos-circle:active{transform:scale(0.95)}
+.sos-circle.activated{background:#7B241C}
+.sos-label{font-size:26px;font-weight:900;color:#fff}
+.sos-hint{font-size:10px;color:rgba(255,255,255,0.8);margin-top:2px}
+.sos-contact-chip{display:inline-flex;align-items:center;gap:6px;background:var(--pink-l);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;color:var(--pink);margin:4px}
+
+/* ── REPORT ── */
+.category-btn{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.2s;margin-bottom:8px;width:100%;font-family:'Inter',sans-serif;font-size:13px;color:var(--text)}
+.category-btn.selected{border-color:var(--pink);background:var(--pink-l);color:var(--pink)}
+.category-btn:hover{border-color:var(--pink)}
+.severity-row{display:flex;gap:8px;margin-bottom:10px}
+.sev-btn{flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s;color:var(--text)}
+.sev-btn.active{border-color:var(--pink);background:var(--pink-l);color:var(--pink)}
+
+/* ── CONTACTS ── */
+.contact-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.contact-row:last-child{border:none}
+.contact-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.contact-info{flex:1}
+.contact-name{font-size:14px;font-weight:600}
+.contact-phone{font-size:12px;color:var(--text3);margin-top:2px}
+.contact-actions{display:flex;gap:8px}
+.icon-btn{width:34px;height:34px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer}
+
+/* ── NEARBY ── */
+.service-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.service-row:last-child{border:none}
+.service-icon-box{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.service-name{font-size:13px;font-weight:600}
+.service-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.service-call{font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
+
+/* ── HISTORY ── */
+.history-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.history-item:last-child{border:none}
+.history-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.history-title{font-size:13px;font-weight:600}
+.history-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── PROFILE ── */
+.profile-header{background:var(--pink);padding:32px 20px 24px;text-align:center}
+.profile-avatar-big{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.25);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;border:3px solid rgba(255,255,255,0.4)}
+.profile-email{font-size:13px;color:rgba(255,255,255,0.8);margin-top:4px}
+.profile-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--border)}
+.profile-row:last-child{border:none}
+.profile-key{font-size:13px;color:var(--text2)}
+.profile-val{font-size:13px;font-weight:600;color:var(--text)}
+.stat-boxes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-box{background:var(--surface);border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow)}
+.stat-box-num{font-size:22px;font-weight:800}
+.stat-box-label{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ── MODAL ── */
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;padding:20px 20px 32px;width:100%}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-close{float:right;font-size:20px;cursor:pointer;color:var(--text3)}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:14px}
+.tab{flex:1;padding:8px;border-radius:8px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;color:var(--text3);transition:.2s}
+.tab.active{background:var(--surface);color:var(--pink);font-weight:700;box-shadow:var(--shadow)}
+
+@media(max-width:420px){.device{width:100%;height:100vh;border-radius:0;box-shadow:none}}
+</style>
+</head>
+<body>
+
+<div class="device" id="app">
+  <div class="status-bar" id="statusBar">
+    <span id="clock">9:41</span>
+    <span>📶 🔋</span>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 1 — SPLASH
+  ════════════════════════════════════════ -->
+  <div class="screen active" id="splash" style="background:var(--pink)">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+      <div class="splash-icon">🛡️</div>
+      <div class="splash-title">SafeRoute</div>
+      <div class="splash-sub">Women's safety companion</div>
+      <div class="splash-loader"></div>
+      <p style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:60px">New Prince Shri Bhavani College of Engineering</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 2 — LOGIN
+  ════════════════════════════════════════ -->
+  <div class="screen" id="login">
+    <div class="login-header">
+      <div class="icon">🛡️</div>
+      <h2>Welcome back</h2>
+      <p>Sign in to stay safe</p>
+    </div>
+    <div class="login-body scroll-body">
+      <div style="padding-bottom:20px">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input class="input" id="loginEmail" type="email" placeholder="sarah@example.com" value="sarah@example.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="input" id="loginPass" type="password" placeholder="••••••••" value="password123"/>
+        </div>
+        <div class="error-msg" id="loginError">Invalid email or password. Try: sarah@example.com / password123</div>
+        <button class="btn btn-pink" style="margin-top:8px" onclick="doLogin()">Sign in</button>
+        <div style="text-align:center;margin-top:16px">
+          <span style="font-size:13px;color:var(--text3)">Don't have an account? </span>
+          <span class="link-text" onclick="go('register')">Create one</span>
+        </div>
+        <div style="text-align:center;margin-top:20px">
+          <p style="font-size:11px;color:var(--text3)">🔒 Powered by Firebase Authentication</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 3 — REGISTER
+  ════════════════════════════════════════ -->
+  <div class="screen" id="register">
+    <div class="topbar"><span class="back" onclick="go('login')">←</span><h2>Create account</h2></div>
+    <div class="scroll-body">
+      <div style="padding:20px">
+        <div class="form-group">
+          <label class="form-label">Full name</label>
+          <input class="input" placeholder="Jenewar Sarah Singh M"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input class="input" type="email" placeholder="sarah@example.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone number</label>
+          <input class="input" type="tel" placeholder="+91 98765 43210"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="input" type="password" placeholder="Min 6 characters"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm password</label>
+          <input class="input" type="password" placeholder="Repeat password"/>
+        </div>
+        <button class="btn btn-pink" onclick="doRegister()">Create account</button>
+        <div style="text-align:center;margin-top:14px">
+          <span class="link-text" onclick="go('login')">← Back to login</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 4 — HOME
+  ════════════════════════════════════════ -->
+  <div class="screen" id="home">
+    <div class="home-header">
+      <div class="home-header-top">
+        <div>
+          <div class="home-greeting" id="greeting">Good evening</div>
+          <div class="home-name">Sarah Singh 👋</div>
+        </div>
+        <div class="home-avatar" onclick="go('profile')">SS</div>
+      </div>
+      <div class="search-bar" onclick="go('map')">
+        <span>🔍</span>
+        <span>Where do you want to go?</span>
+      </div>
+    </div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="quick-grid">
+          <div class="quick-card" onclick="go('map')">
+            <div class="quick-icon">🗺️</div>
+            <div class="quick-label">Plan safe route</div>
+          </div>
+          <div class="quick-card" onclick="go('sos')">
+            <div class="quick-icon" style="color:var(--red)">🆘</div>
+            <div class="quick-label">Emergency SOS</div>
+          </div>
+          <div class="quick-card" onclick="go('report')">
+            <div class="quick-icon" style="color:var(--orange)">🚩</div>
+            <div class="quick-label">Report area</div>
+          </div>
+          <div class="quick-card" onclick="go('nearby')">
+            <div class="quick-icon" style="color:var(--blue)">🏥</div>
+            <div class="quick-label">Nearby services</div>
+          </div>
+        </div>
+        <div class="section-label">Recent activity</div>
+        <div class="activity-card" onclick="go('history')">
+          <div style="width:40px;height:40px;border-radius:10px;background:#EAF3DE;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🛤</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">T. Nagar → Adyar</div>
+            <div style="font-size:11px;color:var(--text3)">Yesterday, 7:30 PM · 6.2 km</div>
+          </div>
+          <span class="badge badge-safe">82</span>
+        </div>
+        <div class="activity-card" onclick="go('history')">
+          <div style="width:40px;height:40px;border-radius:10px;background:#FEF3E2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🛤</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">Anna Nagar → Velachery</div>
+            <div style="font-size:11px;color:var(--text3)">Mon, 8:15 PM · 11.4 km</div>
+          </div>
+          <span class="badge badge-mod">61</span>
+        </div>
+        <div class="activity-card" onclick="go('history')">
+          <div style="width:40px;height:40px;border-radius:10px;background:#FCEBEB;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🆘</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">SOS triggered — Resolved</div>
+            <div style="font-size:11px;color:var(--text3)">Last week · 3 contacts notified</div>
+          </div>
+          <span class="badge badge-safe">✓</span>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <button class="nav-btn active" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
+      <button class="nav-btn" onclick="go('map')"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>
+      <button class="nav-btn" onclick="go('contacts')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Contacts</button>
+      <button class="nav-btn" onclick="go('history')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</button>
+      <button class="nav-btn" onclick="go('profile')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 5 — MAP
+  ════════════════════════════════════════ -->
+  <div class="screen" id="map">
+    <div class="topbar"><span class="back" onclick="go('home')">←</span><h2>Find safe route</h2></div>
+    <div class="map-box">
+      <div class="map-road" style="width:65%;height:8px;top:48%;left:5%;transform:rotate(-6deg)"></div>
+      <div class="map-road" style="width:35%;height:6px;top:28%;left:48%;transform:rotate(72deg)"></div>
+      <div class="map-road" style="width:40%;height:5px;top:65%;left:30%;transform:rotate(10deg)"></div>
+      <div class="map-route-line"></div>
+      <div class="map-pin-src">📍</div>
+      <div class="map-pin-dst">🔴</div>
+      <div class="map-tag">🛡 GPS Active</div>
+    </div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="location-row">
+          <div class="loc-item" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div class="loc-dot" style="background:var(--pink)"></div>
+            <div class="loc-info">
+              <div class="loc-label">From</div>
+              <div class="loc-val">Your current location</div>
+            </div>
+            <span style="font-size:11px;color:var(--green);font-weight:600">📡 GPS</span>
+          </div>
+          <div class="loc-item">
+            <div class="loc-dot" style="background:var(--red)"></div>
+            <div class="loc-info">
+              <div class="loc-label">To</div>
+              <input class="input" id="destInput" placeholder="Enter destination..." style="border:none;padding:0;background:transparent;font-size:13px;font-weight:500" value="Adyar, Chennai"/>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-pink" onclick="findRoutes()">🛡️ Find safe routes</button>
+        <div style="margin-top:14px;text-align:center">
+          <p style="font-size:11px;color:var(--text3)">Powered by Google Maps API + ML Safety Engine</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 6 — ROUTES COMPARISON
+  ════════════════════════════════════════ -->
+  <div class="screen" id="routes">
+    <div class="topbar"><span class="back" onclick="go('map')">←</span><h2>Route comparison</h2></div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="info-banner">🤖 ML Safety Engine analyzed 6 factors: crime rate, user reports, police proximity, hospital proximity, time of travel, and road lighting.</div>
+        <div class="section-label">3 routes found — ranked by safety score</div>
+
+        <div class="route-card recommended" onclick="go('recommend')">
+          <div class="route-header">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <div class="route-name">Route A — Via ECR</div>
+                <span class="badge badge-pink" style="font-size:9px">Recommended</span>
+              </div>
+              <div class="route-meta">7.2 km · 22 min</div>
+            </div>
+            <div class="route-score" style="color:var(--green)">82</div>
+          </div>
+          <div class="score-bar"><div class="score-fill" style="width:82%;background:var(--green)"></div></div>
+          <div class="route-tags">
+            <span class="route-tag" style="background:#EAF3DE;color:#2D7A0F">✅ Low crime</span>
+            <span class="route-tag" style="background:#EAF3DE;color:#2D7A0F">🚔 Police 0.3 km</span>
+            <span class="route-tag" style="background:#EAF3DE;color:#2D7A0F">💡 Well lit</span>
+          </div>
+        </div>
+
+        <div class="route-card" onclick="go('recommend')">
+          <div class="route-header">
+            <div>
+              <div class="route-name" style="margin-bottom:4px">Route B — Via GST Road</div>
+              <div class="route-meta">5.8 km · 18 min (Fastest ⚡)</div>
+            </div>
+            <div class="route-score" style="color:var(--orange)">61</div>
+          </div>
+          <div class="score-bar"><div class="score-fill" style="width:61%;background:var(--orange)"></div></div>
+          <div class="route-tags">
+            <span class="route-tag" style="background:#FEF3E2;color:#7A4A0F">⚠️ 2 reports</span>
+            <span class="route-tag" style="background:#FEF3E2;color:#7A4A0F">🌑 Poor lighting</span>
+          </div>
+        </div>
+
+        <div class="route-card" onclick="go('recommend')">
+          <div class="route-header">
+            <div>
+              <div class="route-name" style="margin-bottom:4px">Route C — Via Saidapet</div>
+              <div class="route-meta">6.1 km · 25 min</div>
+            </div>
+            <div class="route-score" style="color:var(--red)">38</div>
+          </div>
+          <div class="score-bar"><div class="score-fill" style="width:38%;background:var(--red)"></div></div>
+          <div class="route-tags">
+            <span class="route-tag" style="background:#FCEBEB;color:#8B1A1A">🔴 High crime</span>
+            <span class="route-tag" style="background:#FCEBEB;color:#8B1A1A">📢 5 recent reports</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 7 — RECOMMENDATION DETAIL
+  ════════════════════════════════════════ -->
+  <div class="screen" id="recommend">
+    <div class="topbar"><span class="back" onclick="go('routes')">←</span><h2>Recommended route</h2></div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="recommend-banner">
+          <div style="font-size:36px">🛡️</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#2D7A0F">Route A — Via ECR</div>
+            <div style="font-size:12px;color:#3B6D11;margin-top:3px">ML Safety Score: <strong>82 / 100</strong></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">7.2 km · 22 min</div>
+          </div>
+        </div>
+
+        <div class="section-label">Why this route is recommended</div>
+        <div class="card">
+          <div class="factor-row">
+            <div class="factor-label">⚠️ Crime risk</div>
+            <div class="factor-right">
+              <div class="factor-bar"><div class="factor-bar-fill" style="width:20%;background:var(--green)"></div></div>
+              <div class="factor-val" style="color:var(--green)">Low</div>
+            </div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-label">📢 User reports</div>
+            <div class="factor-right">
+              <div class="factor-bar"><div class="factor-bar-fill" style="width:5%;background:var(--green)"></div></div>
+              <div class="factor-val" style="color:var(--green)">None</div>
+            </div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-label">🚔 Police station</div>
+            <div class="factor-right">
+              <div class="factor-bar"><div class="factor-bar-fill" style="width:90%;background:var(--green)"></div></div>
+              <div class="factor-val" style="color:var(--green)">0.3 km</div>
+            </div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-label">🏥 Hospital</div>
+            <div class="factor-right">
+              <div class="factor-bar"><div class="factor-bar-fill" style="width:78%;background:var(--green)"></div></div>
+              <div class="factor-val" style="color:var(--green)">0.8 km</div>
+            </div>
+          </div>
+          <div class="factor-row">
+            <div class="factor-label">🕐 Time of travel</div>
+            <div class="factor-right">
+              <div class="factor-bar"><div class="factor-bar-fill" style="width:70%;background:var(--green)"></div></div>
+              <div class="factor-val" style="color:var(--green)">Evening</div>
+            </div>
+          </div>
+          <div class="factor-row" style="margin-bottom:0">
+            <div class="factor-label">💡 Road lighting</div>
+            <div class="factor-right">
+              <div class="factor-bar"><div class="factor-bar-fill" style="width:85%;background:var(--green)"></div></div>
+              <div class="factor-val" style="color:var(--green)">Good</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-banner" style="background:var(--pink-l);color:var(--pink-d)">
+          🤖 <strong>Random Forest ML model</strong> predicted this score using 10 features. Crime risk (28%) and user reports (22%) had the highest weight.
+        </div>
+
+        <button class="btn btn-pink" onclick="go('navigate')">▶ Start navigation</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="go('routes')">View other routes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 8 — NAVIGATION
+  ════════════════════════════════════════ -->
+  <div class="screen" id="navigate">
+    <div class="nav-header">
+      <span style="color:#fff;cursor:pointer;font-size:22px" onclick="go('recommend')">←</span>
+      <div style="flex:1;margin-left:10px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.6)">Navigating to</div>
+        <div style="font-size:14px;font-weight:600;color:#fff">Adyar, Chennai</div>
+      </div>
+      <span class="badge badge-safe">Safe Route</span>
+    </div>
+    <div class="nav-map">
+      <div class="nav-map-road" style="width:70%;height:10px;top:50%;left:2%;transform:rotate(-5deg)"></div>
+      <div class="nav-map-road" style="width:30%;height:8px;top:30%;left:55%;transform:rotate(75deg)"></div>
+      <div class="nav-map-road" style="width:45%;height:7px;top:65%;left:20%;transform:rotate(8deg)"></div>
+      <div class="nav-map-content">
+        <div class="nav-compass">🧭</div>
+        <div style="color:rgba(255,255,255,0.7);font-size:13px;margin-top:8px">Turn right in 200 m</div>
+        <div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:4px">Via ECR Road</div>
+      </div>
+    </div>
+    <div class="nav-bottom">
+      <div class="nav-stats">
+        <div class="nav-stat">
+          <div class="nav-stat-label">Distance</div>
+          <div class="nav-stat-val">5.4 km</div>
+        </div>
+        <div class="nav-stat" style="border-left:1px solid rgba(255,255,255,0.1);border-right:1px solid rgba(255,255,255,0.1)">
+          <div class="nav-stat-label">ETA</div>
+          <div class="nav-stat-val">17 min</div>
+        </div>
+        <div class="nav-stat">
+          <div class="nav-stat-label">Safety</div>
+          <div class="nav-stat-val" style="color:var(--green)">82/100</div>
+        </div>
+      </div>
+      <button class="btn btn-red" onclick="go('sos')" style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:700">🆘 SOS Emergency</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 9 — SOS
+  ════════════════════════════════════════ -->
+  <div class="screen" id="sos">
+    <div class="topbar" style="background:var(--red)"><span class="back" onclick="go('home')">←</span><h2>Emergency SOS</h2></div>
+    <div class="scroll-body">
+      <div style="padding:20px;text-align:center">
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:24px">Press and hold the SOS button for 2 seconds to send an emergency alert to your trusted contacts.</p>
+        <div class="sos-ring">
+          <button class="sos-circle" id="sosBtn" onmousedown="startSOS()" ontouchstart="startSOS()" onmouseup="cancelSOS()" ontouchend="cancelSOS()">
+            <div class="sos-label">SOS</div>
+            <div class="sos-hint">HOLD 2s</div>
+          </button>
+        </div>
+        <div id="sosStatus" style="margin-top:20px;min-height:60px"></div>
+        <div class="card" style="text-align:left;margin-top:4px">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">📍 Your location</div>
+          <div style="font-size:13px;font-weight:500">Tambaram, Chennai</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">13.0499° N, 80.1000° E</div>
+        </div>
+        <div class="card" style="text-align:left">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">Alert will be sent to</div>
+          <div>
+            <span class="sos-contact-chip">👩 Amma</span>
+            <span class="sos-contact-chip">👧 Savitha</span>
+            <span class="sos-contact-chip">👨 Rajan</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 10 — SAFETY REPORT
+  ════════════════════════════════════════ -->
+  <div class="screen" id="report">
+    <div class="topbar"><span class="back" onclick="go('home')">←</span><h2>Report unsafe area</h2></div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.5">Help other women stay safe by reporting incidents in your area.</p>
+        <div class="section-label">Select category</div>
+        <button class="category-btn selected" id="cat-0" onclick="selectCat(0)">⚠️  Unsafe area</button>
+        <button class="category-btn" id="cat-1" onclick="selectCat(1)">🚫  Harassment</button>
+        <button class="category-btn" id="cat-2" onclick="selectCat(2)">💡  Poor lighting</button>
+        <button class="category-btn" id="cat-3" onclick="selectCat(3)">👁  Suspicious activity</button>
+        <button class="category-btn" id="cat-4" onclick="selectCat(4)">📝  Other</button>
+        <div class="section-label" style="margin-top:14px">Severity level</div>
+        <div class="severity-row">
+          <button class="sev-btn" id="sev-1" onclick="selectSev(1)">1 Minor</button>
+          <button class="sev-btn active" id="sev-2" onclick="selectSev(2)">2</button>
+          <button class="sev-btn" id="sev-3" onclick="selectSev(3)">3 Moderate</button>
+          <button class="sev-btn" id="sev-4" onclick="selectSev(4)">4</button>
+          <button class="sev-btn" id="sev-5" onclick="selectSev(5)">5 Severe</button>
+        </div>
+        <div class="section-label" style="margin-top:14px">Description</div>
+        <textarea class="input" rows="3" placeholder="Describe what happened..." style="resize:none;margin-bottom:10px"></textarea>
+        <div style="background:var(--surface2);border-radius:10px;padding:11px 12px;display:flex;align-items:center;gap:8px;margin-bottom:14px;border:1.5px solid var(--border)">
+          <span>📍</span>
+          <div>
+            <div style="font-size:11px;color:var(--text3)">Location (auto-detected)</div>
+            <div style="font-size:13px;font-weight:500">Tambaram, Chennai</div>
+          </div>
+        </div>
+        <button class="btn btn-pink" onclick="submitReport()">Submit report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 11 — EMERGENCY CONTACTS
+  ════════════════════════════════════════ -->
+  <div class="screen" id="contacts">
+    <div class="topbar">
+      <span class="back" onclick="go('home')">←</span>
+      <h2>Emergency contacts</h2>
+      <span class="action" onclick="openAddContact()">＋</span>
+    </div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="info-banner" style="margin-bottom:14px">These contacts receive your SOS alerts and live location via Firebase push notification.</div>
+        <div class="card" id="contactsList">
+          <div class="contact-row">
+            <div class="contact-avatar" style="background:#FBEAF0;color:var(--pink)">AM</div>
+            <div class="contact-info">
+              <div class="contact-name">Amma (Mother)</div>
+              <div class="contact-phone">+91 98765 43210</div>
+            </div>
+            <div class="contact-actions">
+              <button class="icon-btn" style="background:#EAF3DE;color:var(--green)">📞</button>
+              <button class="icon-btn" style="background:#FCEBEB;color:var(--red)" onclick="showToast('Contact removed')">🗑</button>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-avatar" style="background:#E6F1FB;color:var(--blue)">SS</div>
+            <div class="contact-info">
+              <div class="contact-name">Savitha (Sister)</div>
+              <div class="contact-phone">+91 87654 32109</div>
+            </div>
+            <div class="contact-actions">
+              <button class="icon-btn" style="background:#EAF3DE;color:var(--green)">📞</button>
+              <button class="icon-btn" style="background:#FCEBEB;color:var(--red)" onclick="showToast('Contact removed')">🗑</button>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-avatar" style="background:#EAF3DE;color:var(--green)">RJ</div>
+            <div class="contact-info">
+              <div class="contact-name">Rajan (Friend)</div>
+              <div class="contact-phone">+91 76543 21098</div>
+            </div>
+            <div class="contact-actions">
+              <button class="icon-btn" style="background:#EAF3DE;color:var(--green)">📞</button>
+              <button class="icon-btn" style="background:#FCEBEB;color:var(--red)" onclick="showToast('Contact removed')">🗑</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline" onclick="openAddContact()">＋ Add new contact</button>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <button class="nav-btn" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
+      <button class="nav-btn" onclick="go('map')"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>
+      <button class="nav-btn active" onclick="go('contacts')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Contacts</button>
+      <button class="nav-btn" onclick="go('history')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</button>
+      <button class="nav-btn" onclick="go('profile')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 12 — NEARBY SERVICES
+  ════════════════════════════════════════ -->
+  <div class="screen" id="nearby">
+    <div class="topbar"><span class="back" onclick="go('home')">←</span><h2>Nearby services</h2></div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="map-box" style="height:160px;border-radius:14px;margin-bottom:14px;overflow:hidden;position:relative">
+          <div class="map-road" style="width:60%;height:7px;top:48%;left:5%;transform:rotate(-4deg)"></div>
+          <div style="position:absolute;top:18px;left:18px;font-size:22px">🚔</div>
+          <div style="position:absolute;top:28px;right:32px;font-size:22px">🏥</div>
+          <div style="position:absolute;bottom:22px;left:52px;font-size:22px">🚔</div>
+          <div style="position:absolute;bottom:18px;right:20px;font-size:22px">🏥</div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.9);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:var(--text)">📍 Tambaram</div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" id="tab-police" onclick="switchTab('police')">🚔 Police</button>
+          <button class="tab" id="tab-hospital" onclick="switchTab('hospital')">🏥 Hospitals</button>
+        </div>
+
+        <div id="police-list" class="card">
+          <div class="service-row">
+            <div class="service-icon-box" style="background:#E6F1FB">🚔</div>
+            <div style="flex:1">
+              <div class="service-name">Tambaram Police Station</div>
+              <div class="service-meta">0.3 km · Open 24/7 · ⭐ 4.2</div>
+            </div>
+            <button class="service-call" onclick="showToast('Calling 044-22262100...')">📞 Call</button>
+          </div>
+          <div class="service-row">
+            <div class="service-icon-box" style="background:#E6F1FB">🚔</div>
+            <div style="flex:1">
+              <div class="service-name">Chromepet Police Station</div>
+              <div class="service-meta">1.1 km · Open 24/7 · ⭐ 4.0</div>
+            </div>
+            <button class="service-call" onclick="showToast('Calling 044-22641000...')">📞 Call</button>
+          </div>
+          <div class="service-row">
+            <div class="service-icon-box" style="background:#E6F1FB">🚔</div>
+            <div style="flex:1">
+              <div class="service-name">Pallavaram Police Station</div>
+              <div class="service-meta">2.4 km · Open 24/7 · ⭐ 3.9</div>
+            </div>
+            <button class="service-call" onclick="showToast('Calling 044-22641500...')">📞 Call</button>
+          </div>
+        </div>
+
+        <div id="hospital-list" class="card" style="display:none">
+          <div class="service-row">
+            <div class="service-icon-box" style="background:#FCEBEB">🏥</div>
+            <div style="flex:1">
+              <div class="service-name">Tambaram Govt. Hospital</div>
+              <div class="service-meta">0.8 km · Emergency 24/7 · ⭐ 4.1</div>
+            </div>
+            <button class="service-call" onclick="showToast('Calling 044-22261000...')">📞 Call</button>
+          </div>
+          <div class="service-row">
+            <div class="service-icon-box" style="background:#FCEBEB">🏥</div>
+            <div style="flex:1">
+              <div class="service-name">Sri Ramachandra Hospital</div>
+              <div class="service-meta">2.3 km · Emergency 24/7 · ⭐ 4.5</div>
+            </div>
+            <button class="service-call" onclick="showToast('Calling 044-45928000...')">📞 Call</button>
+          </div>
+          <div class="service-row">
+            <div class="service-icon-box" style="background:#FCEBEB">🏥</div>
+            <div style="flex:1">
+              <div class="service-name">Chettinad Health City</div>
+              <div class="service-meta">3.1 km · Emergency 24/7 · ⭐ 4.3</div>
+            </div>
+            <button class="service-call" onclick="showToast('Calling 044-47000000...')">📞 Call</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 13 — HISTORY
+  ════════════════════════════════════════ -->
+  <div class="screen" id="history">
+    <div class="topbar"><span class="back" onclick="go('home')">←</span><h2>History</h2></div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="tabs">
+          <button class="tab active" id="tab-routes" onclick="switchHistTab('routes')">Routes</button>
+          <button class="tab" id="tab-reports" onclick="switchHistTab('reports')">Reports</button>
+          <button class="tab" id="tab-sos-hist" onclick="switchHistTab('sos-hist')">SOS</button>
+        </div>
+
+        <div id="routes-hist" class="card">
+          <div class="history-item" onclick="go('recommend')">
+            <div class="history-icon" style="background:#EAF3DE">🛤</div>
+            <div style="flex:1">
+              <div class="history-title">T. Nagar → Adyar</div>
+              <div class="history-sub">Yesterday, 7:30 PM · 6.2 km · 22 min</div>
+            </div>
+            <span class="badge badge-safe">82</span>
+          </div>
+          <div class="history-item" onclick="go('recommend')">
+            <div class="history-icon" style="background:#FEF3E2">🛤</div>
+            <div style="flex:1">
+              <div class="history-title">Anna Nagar → Velachery</div>
+              <div class="history-sub">Mon, 8:15 PM · 11.4 km · 38 min</div>
+            </div>
+            <span class="badge badge-mod">61</span>
+          </div>
+          <div class="history-item" onclick="go('recommend')">
+            <div class="history-icon" style="background:#EAF3DE">🛤</div>
+            <div style="flex:1">
+              <div class="history-title">Porur → T. Nagar</div>
+              <div class="history-sub">Sun, 6:00 PM · 9.1 km · 31 min</div>
+            </div>
+            <span class="badge badge-safe">77</span>
+          </div>
+        </div>
+
+        <div id="reports-hist" class="card" style="display:none">
+          <div class="history-item">
+            <div class="history-icon" style="background:#FEF3E2">🚩</div>
+            <div style="flex:1">
+              <div class="history-title">Poor lighting — Saidapet</div>
+              <div class="history-sub">Sat, 9:00 PM</div>
+            </div>
+            <span class="badge badge-mod">Active</span>
+          </div>
+          <div class="history-item">
+            <div class="history-icon" style="background:#FCEBEB">🚩</div>
+            <div style="flex:1">
+              <div class="history-title">Suspicious activity — Guindy</div>
+              <div class="history-sub">Thu, 10:30 PM</div>
+            </div>
+            <span class="badge badge-safe">Resolved</span>
+          </div>
+        </div>
+
+        <div id="sos-hist" class="card" style="display:none">
+          <div class="history-item">
+            <div class="history-icon" style="background:#FCEBEB">🆘</div>
+            <div style="flex:1">
+              <div class="history-title">SOS triggered</div>
+              <div class="history-sub">Last week · 3 contacts notified</div>
+            </div>
+            <span class="badge badge-safe">Resolved</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <button class="nav-btn" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
+      <button class="nav-btn" onclick="go('map')"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>
+      <button class="nav-btn" onclick="go('contacts')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Contacts</button>
+      <button class="nav-btn active" onclick="go('history')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</button>
+      <button class="nav-btn" onclick="go('profile')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 14 — PROFILE
+  ════════════════════════════════════════ -->
+  <div class="screen" id="profile">
+    <div class="profile-header">
+      <div class="profile-avatar-big">SS</div>
+      <div style="font-size:18px;font-weight:700;color:#fff">Sarah Singh</div>
+      <div class="profile-email">sarah@example.com</div>
+    </div>
+    <div class="scroll-body">
+      <div style="padding:14px">
+        <div class="stat-boxes">
+          <div class="stat-box">
+            <div class="stat-box-num" style="color:var(--pink)">12</div>
+            <div class="stat-box-label">Routes</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-num" style="color:var(--orange)">3</div>
+            <div class="stat-box-label">Reports</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-num" style="color:var(--red)">1</div>
+            <div class="stat-box-label">SOS used</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="profile-row">
+            <span class="profile-key">Full name</span>
+            <span class="profile-val">Jenewar Sarah Singh M</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-key">Phone</span>
+            <span class="profile-val">+91 98765 43210</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-key">Email</span>
+            <span class="profile-val">sarah@example.com</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-key">Contacts added</span>
+            <span class="profile-val">3</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-key">Account</span>
+            <span class="profile-val" style="color:var(--green)">✓ Firebase verified</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="profile-row">
+            <span class="profile-key">App version</span>
+            <span class="profile-val">1.0.0</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-key">Project</span>
+            <span class="profile-val">U23CS703 — Batch 01</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-key">College</span>
+            <span class="profile-val" style="font-size:11px">New Prince Shri Bhavani</span>
+          </div>
+        </div>
+        <button class="btn" style="background:#FCEBEB;color:var(--red);font-weight:600;margin-top:4px" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <button class="nav-btn" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
+      <button class="nav-btn" onclick="go('map')"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>
+      <button class="nav-btn" onclick="go('contacts')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Contacts</button>
+      <button class="nav-btn" onclick="go('history')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</button>
+      <button class="nav-btn active" onclick="go('profile')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+    </div>
+  </div>
+
+  <!-- ── ADD CONTACT MODAL ── -->
+  <div class="modal-overlay" id="addContactModal">
+    <div class="modal">
+      <span class="modal-close" onclick="closeModal()">✕</span>
+      <div class="modal-title">Add emergency contact</div>
+      <div class="form-group">
+        <label class="form-label">Full name</label>
+        <input class="input" id="newName" placeholder="Contact name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone number</label>
+        <input class="input" id="newPhone" type="tel" placeholder="+91 XXXXX XXXXX"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Relationship</label>
+        <select class="input" id="newRel">
+          <option>Mother</option><option>Father</option><option>Sister</option>
+          <option>Brother</option><option>Friend</option><option>Colleague</option><option>Other</option>
+        </select>
+      </div>
+      <button class="btn btn-pink" onclick="addContact()">Save contact</button>
+    </div>
+  </div>
+
+  <!-- ── TOAST ── -->
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ── Live clock ────────────────────────────────────────────────
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' +
+    now.getMinutes().toString().padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 30000);
+
+// ── Greeting ─────────────────────────────────────────────────
+function setGreeting(){
+  const h = new Date().getHours();
+  const el = document.getElementById('greeting');
+  if(el) el.textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+// ── Screen navigation ─────────────────────────────────────────
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const s = document.getElementById(id);
+  if(s){
+    s.classList.add('active');
+    if(s.querySelector('.scroll-body')) s.querySelector('.scroll-body').scrollTop = 0;
+  }
+  // Update status bar color
+  const pinkScreens = ['splash','login','register','sos'];
+  document.getElementById('statusBar').style.background =
+    pinkScreens.includes(id) || id==='navigate' ? (id==='sos'?'var(--red)':id==='navigate'?'#1a1a2e':'var(--pink)') : 'var(--pink)';
+  if(id==='navigate') document.getElementById('statusBar').style.background='#1a1a2e';
+  if(id==='home') setGreeting();
+}
+
+// ── Splash auto-navigate ──────────────────────────────────────
+setTimeout(()=>go('login'), 2200);
+
+// ── Login ─────────────────────────────────────────────────────
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginError');
+  if(email === 'sarah@example.com' && pass === 'password123'){
+    err.style.display = 'none';
+    go('home');
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+// ── Register ──────────────────────────────────────────────────
+function doRegister(){
+  showToast('✅ Account created! Please sign in.');
+  go('login');
+}
+
+// ── Logout ───────────────────────────────────────────────────
+function doLogout(){
+  go('login');
+  showToast('Signed out successfully');
+}
+
+// ── Find routes ───────────────────────────────────────────────
+function findRoutes(){
+  const dest = document.getElementById('destInput').value.trim();
+  if(!dest){ showToast('Please enter a destination'); return; }
+  showToast('🔍 Analyzing route safety...');
+  setTimeout(()=>go('routes'), 1200);
+}
+
+// ── SOS hold logic ────────────────────────────────────────────
+let sosTimer = null;
+function startSOS(){
+  const btn = document.getElementById('sosBtn');
+  const status = document.getElementById('sosStatus');
+  btn.style.transform = 'scale(0.94)';
+  status.innerHTML = '<div style="color:var(--orange);font-size:13px;font-weight:500">Hold for 2 seconds...</div>';
+  sosTimer = setTimeout(()=>{
+    btn.classList.add('activated');
+    btn.innerHTML = '<div class="sos-label" style="font-size:20px">✓</div><div class="sos-hint">SENT</div>';
+    status.innerHTML = `
+      <div style="background:#FCEBEB;border-radius:12px;padding:14px;border:1.5px solid #F7C1C1">
+        <div style="font-size:16px;font-weight:700;color:var(--red);margin-bottom:6px">🚨 SOS Alert Sent!</div>
+        <div style="font-size:12px;color:#8B1A1A;line-height:1.6">
+          3 contacts notified with your live location.<br/>
+          Google Maps link shared via Firebase FCM.
+        </div>
+      </div>`;
+    showToast('🚨 SOS sent to Amma, Savitha, Rajan');
+  }, 2000);
+}
+function cancelSOS(){
+  clearTimeout(sosTimer);
+  const btn = document.getElementById('sosBtn');
+  if(!btn.classList.contains('activated')){
+    btn.style.transform = 'scale(1)';
+    document.getElementById('sosStatus').innerHTML = '';
+  }
+}
+
+// ── Report categories ─────────────────────────────────────────
+function selectCat(i){
+  for(let j=0;j<5;j++){
+    document.getElementById('cat-'+j).classList.remove('selected');
+  }
+  document.getElementById('cat-'+i).classList.add('selected');
+}
+
+// ── Severity ──────────────────────────────────────────────────
+function selectSev(n){
+  for(let i=1;i<=5;i++){
+    document.getElementById('sev-'+i).classList.toggle('active', i===n);
+  }
+}
+
+// ── Submit report ─────────────────────────────────────────────
+function submitReport(){
+  showToast('✅ Report submitted! Thank you for keeping others safe.');
+  setTimeout(()=>go('home'), 1200);
+}
+
+// ── Tabs (nearby) ─────────────────────────────────────────────
+function switchTab(t){
+  document.getElementById('tab-police').classList.toggle('active',t==='police');
+  document.getElementById('tab-hospital').classList.toggle('active',t==='hospital');
+  document.getElementById('police-list').style.display   = t==='police'   ? '' : 'none';
+  document.getElementById('hospital-list').style.display = t==='hospital' ? '' : 'none';
+}
+
+// ── History tabs ──────────────────────────────────────────────
+function switchHistTab(t){
+  ['routes','reports','sos-hist'].forEach(id=>{
+    document.getElementById(id+'-hist'||id).style.display = 'none';
+    const tabId = id==='sos-hist'?'tab-sos-hist':'tab-'+id;
+    const el = document.getElementById(tabId);
+    if(el) el.classList.remove('active');
+  });
+  // Fix: map history ids correctly
+  document.getElementById('routes-hist').style.display   = t==='routes'   ? '' : 'none';
+  document.getElementById('reports-hist').style.display  = t==='reports'  ? '' : 'none';
+  document.getElementById('sos-hist').style.display      = t==='sos-hist' ? '' : 'none';
+  document.getElementById('tab-routes').classList.toggle('active', t==='routes');
+  document.getElementById('tab-reports').classList.toggle('active', t==='reports');
+  document.getElementById('tab-sos-hist').classList.toggle('active', t==='sos-hist');
+}
+
+// ── Contact modal ─────────────────────────────────────────────
+function openAddContact(){
+  document.getElementById('addContactModal').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('addContactModal').classList.remove('open');
+}
+function addContact(){
+  const name  = document.getElementById('newName').value.trim();
+  const phone = document.getElementById('newPhone').value.trim();
+  const rel   = document.getElementById('newRel').value;
+  if(!name || !phone){ showToast('Please fill all fields'); return; }
+  const initials = name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const colors = ['#FBEAF0,var(--pink)','#E6F1FB,var(--blue)','#EAF3DE,var(--green)','#FEF3E2,var(--orange)'];
+  const c = colors[Math.floor(Math.random()*colors.length)].split(',');
+  const list = document.getElementById('contactsList');
+  const div = document.createElement('div');
+  div.className = 'contact-row';
+  div.innerHTML = `
+    <div class="contact-avatar" style="background:${c[0]};color:${c[1]}">${initials}</div>
+    <div class="contact-info">
+      <div class="contact-name">${name} (${rel})</div>
+      <div class="contact-phone">${phone}</div>
+    </div>
+    <div class="contact-actions">
+      <button class="icon-btn" style="background:#EAF3DE;color:var(--green)">📞</button>
+      <button class="icon-btn" style="background:#FCEBEB;color:var(--red)" onclick="this.closest('.contact-row').remove();showToast('Contact removed')">🗑</button>
+    </div>`;
+  list.appendChild(div);
+  closeModal();
+  document.getElementById('newName').value = '';
+  document.getElementById('newPhone').value = '';
+  showToast('✅ Contact added successfully!');
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.style.display='none', 2800);
+}
+
+// ── Keyboard enter support ────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const cur = document.querySelector('.screen.active');
+    if(cur && cur.id==='login') doLogin();
+    if(cur && cur.id==='register') doRegister();
+  }
+});
+</script>
+</body>
+</html>
